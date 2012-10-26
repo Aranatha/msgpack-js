@@ -16,7 +16,7 @@ Decoder.prototype.map = function (length) {
   var value = {};
   for (var i = 0; i < length; i++) {
     var key = this.parse();
-    value[key] = this.parse();
+    value[key.toString()] = this.parse();
   }
   return value;
 };
