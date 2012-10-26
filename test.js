@@ -3,7 +3,7 @@ var util = require('util');
 var assert = require('assert');
 
 var tests = [
-  true, false, null, undefined,
+  true, false, null, //undefined, don't [JST]
   0, 1, -1, 2, -2, 4, -4, 6, -6,
   0x10, -0x10, 0x20, -0x20, 0x40, -0x40,
   0x80, -0x80, 0x100, -0x100, 0x200, -0x100,
@@ -11,8 +11,10 @@ var tests = [
   0x20000, -0x20000, 0x40000,-0x40000,
   10, 100, 1000, 10000, 100000, 1000000,
   -10, -100, -1000, -10000, -100000, -1000000,
-  'hello', 'world', Buffer("Hello"), Buffer("World"),
-  [1,2,3], [], {name: "Tim", age: 29}, {},
+  //'hello', 'world', don't [JST]
+  Buffer("Hello"), Buffer("World"),
+  [1,2,3], [], // {name: "Tim", age: 29}, should improve tests [JST]
+  {},
   {a: 1, b: 2, c: [1, 2, 3]},
 ];
 for (var i = 0, l = tests.length; i < l; i++) {

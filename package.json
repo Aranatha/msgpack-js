@@ -1,11 +1,12 @@
 {
-  "author": "Tim Caswell <tim@creationix.com>",
-  "name": "msgpack-js",
+  "author": "Jean-Sébastien Tremblay <jeansebtr@xpensia.com> (http://xpensia.com/)",
+  "contributors": ["Tim Caswell <tim@creationix.com>"],
+  "name": "msgpack-js-strict",
   "description": "msgpack encoder and decoder in pure node js",
   "version": "0.1.1",
   "repository": {
     "type": "git",
-    "url": "git://github.com/creationix/msgpack.git"
+    "url": "git://github.com/Aranatha/msgpack-js.git"
   },
   "main": "msgpack.js",
   "engines": {

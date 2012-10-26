@@ -7,13 +7,6 @@ exports.encode = function (value) {
 exports.decode = decode;
 
 // http://wiki.msgpack.org/display/MSGPACK/Format+specification
-// I've extended the protocol to have two new types that were previously reserved.
-//   buffer 16  11011000  0xd8
-//   buffer 32  11011001  0xd9
-// These work just like raw16 and raw32 except they are node buffers instead of strings.
-//
-// Also I've added a type for `undefined`
-//   undefined  11000100  0xc4
 
 function Decoder(buffer, offset) {
   this.offset = offset || 0;
@@ -33,7 +26,7 @@ Decoder.prototype.buf = function (length) {
   return value;
 };
 Decoder.prototype.raw = function (length) {
-  var value = this.buffer.toString('utf8', this.offset, this.offset + length);
+  var value = this.buffer.slice(this.offset, this.offset + length);
   this.offset += length;
   return value;
 };
@@ -99,10 +92,10 @@ Decoder.prototype.parse = function () {
   case 0xc3:
     this.offset++;
     return true;
-  // undefined
+  // undefined, should be null [JST]
   case 0xc4:
     this.offset++;
-    return undefined;
+    return null;
   // uint8
   case 0xcc:
     value = this.buffer[this.offset + 1];
@@ -189,7 +182,10 @@ Decoder.prototype.parse = function () {
 function decode(buffer) {
   var decoder = new Decoder(buffer);
   var value = decoder.parse();
-  if (decoder.offset !== buffer.length) throw new Error((buffer.length - decoder.offset) + " trailing bytes");
+  if (decoder.offset !== buffer.length) {
+    console.error((buffer.length - decoder.offset) + " trailing bytes:", value, buffer);
+    throw new Error((buffer.length - decoder.offset) + " trailing bytes");
+  }
   return value;
 }
 
@@ -198,41 +194,27 @@ function encode(value, buffer, offset) {
 
   // Strings Bytes
   if (type === "string") {
-    var length = Buffer.byteLength(value);
+    value = new Buffer(value, 'utf8');
+  }
+
+  if (Buffer.isBuffer(value)) {
+    var length = value.length;
     // fix raw
     if (length < 0x20) {
       buffer[offset] = length | 0xa0;
-      buffer.write(value, offset + 1);
+      value.copy(buffer, offset + 1);
       return 1 + length;
     }
     // raw 16
     if (length < 0x10000) {
       buffer[offset] = 0xda;
       buffer.writeUInt16BE(length, offset + 1);
-      buffer.write(value, offset + 3);
+      value.copy(buffer, offset + 3);
       return 3 + length;
     }
     // raw 32
     if (length < 0x100000000) {
       buffer[offset] = 0xdb;
-      buffer.writeUInt32BE(length, offset + 1);
-      buffer.write(value, offset + 5);
-      return 5 + length;
-    }
-  }
-
-  if (Buffer.isBuffer(value)) {
-    var length = value.length;
-    // buffer 16
-    if (length < 0x10000) {
-      buffer[offset] = 0xd8;
-      buffer.writeUInt16BE(length, offset + 1);
-      value.copy(buffer, offset + 3);
-      return 3 + length;
-    }
-    // buffer 32
-    if (length < 0x100000000) {
-      buffer[offset] = 0xd9;
       buffer.writeUInt32BE(length, offset + 1);
       value.copy(buffer, offset + 5);
       return 5 + length;
@@ -312,9 +294,9 @@ function encode(value, buffer, offset) {
     throw new Error("Number too small -0x" + value.toString(16).substr(1));
   }
   
-  // undefined
+  // undefined, should be null [JST]
   if (type === "undefined") {
-    buffer[offset] = 0xc4;
+    buffer[offset] = 0xc0;
     return 1;
   }
   
@@ -396,6 +378,9 @@ function sizeof(value) {
   
   if (Buffer.isBuffer(value)) {
     var length = value.length;
+    if (length < 0x20) {
+      return 1 + length;
+    }
     if (length < 0x10000) {
       return 3 + length;
     }
